@@ -289,7 +289,7 @@ def game_loop():
                 #無敵状態
                 if event.key == pygame.K_RSHIFT:  # 右シフトを押したら
                     if score >= 40 and player.state != "muteki":  # lifeが40かつ通常状態で発動
-                        score -= 10
+                        score -= 40  # 一回無敵を使ったらスコアを0にする
                         player.state = "muteki"
                         player.muteki_life = 500
 
