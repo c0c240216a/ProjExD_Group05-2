@@ -6,6 +6,8 @@ import sys
 # 設定
 # ----------------------------
 pygame.init()
+pygame.mixer.init() 
+
 WIDTH, HEIGHT = 900, 500
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("チャリ走風ランナー（Pygame）")
@@ -36,6 +38,7 @@ GROUND_Y = HEIGHT - 80
 SCROLL_SPEED = 5  # 初期スクロール速度（px/frame）
 SPEED_INCREASE_RATE = 0.0005  # スコア（距離）に応じて速度増加
 
+
 # フォント
 FONT = pygame.font.SysFont("meiryo", 24)
 BIG_FONT = pygame.font.SysFont("meiryo", 48)
@@ -43,9 +46,12 @@ BIG_FONT = pygame.font.SysFont("meiryo", 48)
 # サウンド（ファイルがあれば好きなファイル名を指定する）
 # もしファイルが無い場合はコメントアウトしても動きます
 try:
-    JUMP_SOUND = pygame.mixer.Sound("jump.wav")
-    HIT_SOUND = pygame.mixer.Sound("hit.wav")
-    COIN_SOUND = pygame.mixer.Sound("coin.wav")
+    JUMP_SOUND = pygame.mixer.Sound("se_jump1.mp3")  # 効果音を読み取る
+    HIT_SOUND = pygame.mixer.Sound("爆発1.mp3")
+    COIN_SOUND = pygame.mixer.Sound("coin002.mp3")
+    pygame.mixer.music.load("maou_14_shining_star.mp3")  #  BGMを再生
+    pygame.mixer.music.set_volume(0.5)  # 音量
+    
 except Exception:
     JUMP_SOUND = None
     HIT_SOUND = None
@@ -123,6 +129,8 @@ class Player:
         # 目押しヒント：ジャンプ状態を少し変化表示
         #if not self.on_ground:
          #   pygame.draw.rect(surf, (255,255,255), (r.x + r.width//2 - 4, r.y + 6, 8, 8))
+        # 自転車本体（四角＋丸の簡易描画）
+        
 
 
 # ----------------------------
@@ -188,7 +196,7 @@ class Ground:
         # 先頭タイルが画面左外に行ったら末尾に移動
         if self.tiles and self.tiles[0].right < 0:
             first = self.tiles.pop(0)
-            first.x = self.tiles[-1].right
+            first.x = self.tiles[-1].right 
             self.tiles.append(first)
 
     def draw(self, surf):
@@ -229,6 +237,8 @@ def draw_text(surf, text, x, y, font=FONT, col=WHITE):
 
 
 def game_loop():
+    if not pygame.mixer.music.get_busy():  # BGMが止まっていたらBGMを流す
+        pygame.mixer.music.play(-1)
     # 初期化
     player = Player(140, GROUND_Y - 48)
     ground = Ground()
@@ -277,7 +287,7 @@ def game_loop():
 
         if not game_over:
             # スピードは距離に応じて少しだけ速くなる
-            speed += SPEED_INCREASE_RATE
+            speed += distance * SPEED_INCREASE_RATE
 
             # 背景移動
             ground.update(speed)
@@ -302,6 +312,7 @@ def game_loop():
                     player.alive = False
                     if HIT_SOUND:
                         HIT_SOUND.play()
+                    pygame.mixer.music.stop()
                     break
 
             # 当たり判定：コイン
@@ -357,15 +368,85 @@ def game_loop():
             SCREEN.blit(overlay, (0,0))
             draw_text(SCREEN, "GAME OVER", WIDTH//2 - 120, HEIGHT//2 - 60, BIG_FONT, (255,180,0))
             draw_text(SCREEN, f"距離: {int(distance)}m  スコア: {score}", WIDTH//2 - 180, HEIGHT//2, FONT, (255,255,255))
-            draw_text(SCREEN, "Rでリスタート / ESCで終了", WIDTH//2 - 140, HEIGHT//2 + 40, FONT, (200,200,200))
+            draw_text(SCREEN, "Rでホーム画面 / ESCで終了", WIDTH//2 - 140, HEIGHT//2 + 40, FONT, (200,200,200))
 
         pygame.display.flip()
 
     return
 
+if __name__ == "_main__":
+    pygame.mixer.music.play(-1)
+    # ----------------------------
+# スタート画面（ホーム画面）
+# ----------------------------
+# ----------------------------
+# スタート画面（ホーム画面）
+# ----------------------------
+def show_start_screen():
+    title_font = pygame.font.SysFont("meiryo", 72)
+    info_font = pygame.font.SysFont("meiryo", 32)
+
+    # 背景と地面の準備
+    ground = Ground()
+    player = Player(140, GROUND_Y - 48)
+
+    blink_timer = 0
+    show_text = True
+    scroll_speed = 2  # タイトル画面ではゆっくり走行
+
+    while True:
+        CLOCK.tick(FPS)
+
+        # ----------------
+        # イベント処理
+        # ----------------
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return  # Rでスタート
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+
+        # ----------------
+        # 背景・アニメーション更新
+        # ----------------
+        ground.update(scroll_speed)
+        player.update(scroll_speed)
+
+        # ----------------
+        # 描画
+        # ----------------
+        SCREEN.blit(BG_IMG, (0,0))
+        ground.draw(SCREEN)
+        player.draw(SCREEN)
+        
+
+        # タイトル表示
+        title_surface = title_font.render("カー走", True, (255, 255, 255))
+        SCREEN.blit(title_surface, (WIDTH//2 - title_surface.get_width()//2, HEIGHT//3))
+
+        # 点滅するテキスト
+        blink_timer += 1
+        if blink_timer > 30:
+            blink_timer = 0
+            show_text = not show_text
+
+        if show_text:
+            info_surface = info_font.render("Rキーでスタート！", True, (255, 240, 100))
+            SCREEN.blit(info_surface, (WIDTH//2 - info_surface.get_width()//2, HEIGHT//1.7))
+
+        draw_text(SCREEN, "ESCキーで終了", WIDTH//2 - 100, HEIGHT - 60, FONT, (230,230,230))
+
+        pygame.display.flip()
+
+
 # ----------------------------
 # ゲーム全体のループ（リスタート対応）
 # ----------------------------
 while True:
+    show_start_screen()
     game_loop()
-
